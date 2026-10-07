@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyBuddy — Student Productivity & Focus Hub</title>
+  <meta name="description" content="All-in-one student buddy app with To-Do List, Pomodoro & Study-Rest Focus Timer, and Deadline Calendar Reminders. Zero login required.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <span>StudyBuddy</span>
+        <span class="brand-badge">No Login Needed</span>
+      </div>
+    </div>
+
+    <nav class="nav-tabs">
+      <button class="nav-btn active" onclick="switchTab('dashboard')">
+        <span>📊</span> Dashboard
+      </button>
+      <button class="nav-btn" onclick="switchTab('focus')">
+        <span>⏱️</span> Focus & Timer
+      </button>
+      <button class="nav-btn" onclick="switchTab('todo')">
+        <span>📝</span> Tasks & To-Do
+      </button>
+      <button class="nav-btn" onclick="switchTab('deadlines')">
+        <span>📅</span> Deadlines & Calendar
+      </button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="icon-btn" onclick="exportData()" title="Backup your tasks and deadlines as JSON">
+        <span>💾</span> Export
+      </button>
+      <button class="icon-btn" onclick="document.getElementById('importFile').click()" title="Restore data from JSON file">
+        <span>📂</span> Import
+      </button>
+      <input type="file" id="importFile" style="display:none" onchange="importData(event)" accept=".json">
+      <button class="icon-btn" onclick="toggleSound()" id="soundToggleBtn" title="Toggle audio chime">
+        <span>🔔</span> Sound: On
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main>
+    <!-- TAB 1: DASHBOARD OVERVIEW -->
+    <section id="dashboard" class="tab-content active">
+      <div class="stat-cards-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">⏱️</div>
+          <div>
+            <div class="stat-val" id="stat-focus-min">0</div>
+            <div class="stat-label">Focus Minutes Today</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald);">✅</div>
+          <div>
+            <div class="stat-val" id="stat-completed-tasks">0/0</div>
+            <div class="stat-label">Tasks Completed</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose);">🚨</div>
+          <div>
+            <div class="stat-val" id="stat-urgent-deadlines">0</div>
+            <div class="stat-label">Urgent Deadlines (48h)</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple);">🔥</div>
+          <div>
+            <div class="stat-val" id="stat-sessions-count">0</div>
+            <div class="stat-label">Completed Sessions</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Quick Focus Widget -->
+        <div class="card">
+          <div class="card-title">
+            <span>⚡ Quick Focus</span>
+            <button class="btn btn-secondary btn-sm" onclick="switchTab('focus')">Full Screen Timer →</button>
+          </div>
+          <div style="text-align: center; padding: 1rem 0;">
+            <div style="font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; margin-bottom: 0.5rem;" id="dash-timer-disp">25:00</div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;" id="dash-timer-task">Ready to start studying?</p>
+            <div style="display: flex; gap: 0.75rem; justify-content: center;">
+              <button class="btn" id="dash-start-btn" onclick="toggleTimer()">▶ Start Focus</button>
+              <button class="btn btn-secondary" onclick="resetTimer()">↺ Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Priority Tasks -->
+        <div class="card">
+          <div class="card-title">
+            <span>🎯 Today's Priority Tasks</span>
+            <button class="btn btn-secondary btn-sm" onclick="switchTab('todo')">View All →</button>
+          </div>
+          <div id="dash-tasks-list" class="task-list">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Upcoming Deadlines Preview -->
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title">
+            <span>📅 Approaching Deadlines & Exams</span>
+            <button class="btn btn-secondary btn-sm" onclick="openEventModal()">+ Add Deadline</button>
+          </div>
+          <div id="dash-deadlines-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: FOCUS & POMODORO (WITH STUDY/REST CHESS CLOCK) -->
+    <section id="focus" class="tab-content">
+      <div class="timer-container">
+        <!-- Timer Mode Selector -->
+        <div class="timer-modes">
+          <button class="mode-btn active" id="mode-pomodoro" onclick="setTimerType('pomodoro')">Pomodoro (25m)</button>
+          <button class="mode-btn" id="mode-short" onclick="setTimerType('shortBreak')">Short Break (5m)</button>
+          <button class="mode-btn" id="mode-long" onclick="setTimerType('longBreak')">Long Break (15m)</button>
+          <button class="mode-btn" id="mode-chess" onclick="setTimerType('chessClock')">♟️ Study/Rest Clock</button>
+        </div>
+
+        <!-- Standard Circular Timer View -->
+        <div id="classic-timer-view">
+          <div class="circle-timer-wrap">
+            <svg class="timer-svg" viewBox="0 0 280 280">
+              <circle class="timer-bg-circle" cx="140" cy="140" r="125"></circle>
+              <circle id="timer-progress" class="timer-progress-circle" cx="140" cy="140" r="125"></circle>
+            </svg>
+            <div class="timer-inner">
+              <div class="timer-status-text" id="timer-mode-label">Focus Session</div>
+              <div class="timer-digits" id="timer-display">25:00</div>
+              <div class="timer-current-task" id="active-task-label">No active task selected</div>
+            </div>
+          </div>
+
+          <!-- Quick Time Adjusters -->
+          <div class="quick-adj-controls">
+            <button class="quick-btn" onclick="adjustTime(-5)">-5 min</button>
+            <button class="quick-btn" onclick="adjustTime(-1)">-1 min</button>
+            <button class="quick-btn" onclick="adjustTime(1)">+1 min</button>
+            <button class="quick-btn" onclick="adjustTime(5)">+5 min</button>
+            <button class="quick-btn" onclick="adjustTime(15)">+15 min</button>
+          </div>
+
+          <!-- Controls -->
+          <div class="timer-controls">
+            <button class="icon-btn" onclick="resetTimer()" title="Reset current session" style="width: 44px; height: 44px; border-radius: 50%; justify-content: center;">
+              ↺
+            </button>
+            <button class="main-timer-btn" id="timer-play-btn" onclick="toggleTimer()" title="Play / Pause">
+              ▶
+            </button>
+            <button class="icon-btn" onclick="skipSession()" title="Skip to next session" style="width: 44px; height: 44px; border-radius: 50%; justify-content: center;">
+              ⏭
+            </button>
+          </div>
+        </div>
+
+        <!-- Chess-Clock / Study-Rest Dual Clock View -->
+        <div id="chess-clock-view" style="display: none;">
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Click either side (or press <strong>Spacebar</strong>) to alternate between Study and Rest time!
+          </p>
+          <div class="chess-clock-box">
+            <div class="chess-side" id="chess-study-card" onclick="activateChessSide('study')">
+              <div class="chess-label">📖 Study Clock</div>
+              <div class="chess-time" id="chess-study-time">00:00</div>
+              <div class="chess-hint" id="chess-study-hint">Click to start studying</div>
+            </div>
+            <div class="chess-side" id="chess-rest-card" onclick="activateChessSide('rest')">
+              <div class="chess-label">☕ Rest Clock</div>
+              <div class="chess-time" id="chess-rest-time">00:00</div>
+              <div class="chess-hint" id="chess-rest-hint">Click to switch to rest</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: center; gap: 0.75rem;">
+            <button class="btn btn-secondary" onclick="pauseChessClock()">⏸ Pause Both</button>
+            <button class="btn btn-danger btn-sm" onclick="resetChessClock()">↺ Reset Clock</button>
+          </div>
+        </div>
+
+        <!-- Timer Duration Customization -->
+        <div class="timer-settings-box">
+          <h4 style="font-size: 0.95rem; font-weight: 600;">⚙️ Custom Timer Durations (Minutes)</h4>
+          <div class="settings-grid">
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Focus Time</label>
+              <input type="number" id="setting-focus" min="1" max="180" value="25" onchange="updateCustomDurations()">
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Short Break</label>
+              <input type="number" id="setting-short" min="1" max="60" value="5" onchange="updateCustomDurations()">
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Long Break</label>
+              <input type="number" id="setting-long" min="1" max="90" value="15" onchange="updateCustomDurations()">
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Auto-Start Next</label>
+              <select id="setting-autostart" onchange="updateCustomDurations()">
+                <option value="false">Manual start</option>
+                <option value="true">Automatic</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: TO-DO & TASK MANAGEMENT -->
+    <section id="todo" class="tab-content">
+      <div class="card">
+        <div class="todo-header">
+          <div>
+            <h2 style="font-size: 1.35rem; font-weight: 700;">Student Task Manager</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Organize course assignments, exam prep, and daily study goals.</p>
+          </div>
+          <div class="todo-filters">
+            <button class="filter-btn active" onclick="setTaskFilter('all', this)">All</button>
+            <button class="filter-btn" onclick="setTaskFilter('active', this)">Incomplete</button>
+            <button class="filter-btn" onclick="setTaskFilter('completed', this)">Completed</button>
+            <button class="filter-btn" onclick="setTaskFilter('urgent', this)">🚨 High Priority</button>
+          </div>
+        </div>
+
+        <!-- Add Task Form -->
+        <form class="todo-input-form" onsubmit="handleAddTask(event)">
+          <input type="text" id="task-title-input" placeholder="What do you need to work on? (e.g. Read Physics Chapter 4)" required>
+          <select id="task-subject-input">
+            <option value="General">📚 General</option>
+            <option value="Math">📐 Math</option>
+            <option value="Computer Science">💻 CS</option>
+            <option value="Physics">⚡ Physics</option>
+            <option value="Chemistry">🧪 Chemistry</option>
+            <option value="Literature">📖 Literature</option>
+            <option value="History">🏛️ History</option>
+            <option value="Assignment">📝 Assignment</option>
+            <option value="Exam Prep">🎯 Exam Prep</option>
+          </select>
+          <select id="task-priority-input">
+            <option value="medium">⚡ Medium Priority</option>
+            <option value="high">🚨 High Priority</option>
+            <option value="low">🌱 Low Priority</option>
+          </select>
+          <button type="submit" class="btn">+ Add Task</button>
+        </form>
+
+        <!-- Search Bar -->
+        <div style="margin-bottom: 1.25rem;">
+          <input type="text" id="task-search-input" placeholder="🔍 Search tasks by keyword or subject..." oninput="renderTasks()">
+        </div>
+
+        <!-- Task List Container -->
+        <div id="full-task-list" class="task-list">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DEADLINES & CALENDAR -->
+    <section id="deadlines" class="tab-content">
+      <div class="calendar-layout">
+        <!-- Calendar Grid -->
+        <div class="card">
+          <div class="calendar-header">
+            <h3 id="cal-month-year" style="font-size: 1.2rem; font-weight: 700;">October 2026</h3>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">‹ Prev</button>
+              <button class="btn btn-secondary btn-sm" onclick="jumpToToday()">Today</button>
+              <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">Next ›</button>
+              <button class="btn btn-sm" onclick="openEventModal()">+ Add Deadline</button>
+            </div>
+          </div>
+
+          <div class="calendar-grid">
+            <div class="cal-day-name">Sun</div>
+            <div class="cal-day-name">Mon</div>
+            <div class="cal-day-name">Tue</div>
+            <div class="cal-day-name">Wed</div>
+            <div class="cal-day-name">Thu</div>
+            <div class="cal-day-name">Fri</div>
+            <div class="cal-day-name">Sat</div>
+          </div>
+          <div id="calendar-cells" class="calendar-grid" style="margin-top: 6px;">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Upcoming Deadlines Side Panel -->
+        <div class="card">
+          <div class="card-title">
+            <span>⏰ Upcoming Deadlines</span>
+            <span class="brand-badge" id="deadline-count-badge">0 events</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Sorted by urgency. Automatic browser audio and visual alerts when approaching!
+          </p>
+          <div id="calendar-deadline-feed" class="deadline-feed">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Add Deadline Modal -->
+  <div class="modal-overlay" id="event-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 style="font-size: 1.15rem; font-weight: 700;">Add Academic Deadline / Exam</h3>
+        <button class="modal-close" onclick="closeEventModal()">✕</button>
+      </div>
+      <form onsubmit="handleAddEvent(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Title / Event Name</label>
+          <input type="text" id="event-title" placeholder="e.g., CS101 Final Project Submission" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Date</label>
+            <input type="date" id="event-date" required>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Time (Optional)</label>
+            <input type="time" id="event-time" value="23:59">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Subject / Category</label>
+            <input type="text" id="event-course" placeholder="e.g. Computer Science" value="General">
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Priority</label>
+            <select id="event-priority">
+              <option value="urgent">🚨 Urgent / Exam</option>
+              <option value="important" selected>⚡ Important Deadline</option>
+              <option value="normal">🌱 Normal Event</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Notes / Links (Optional)</label>
+          <textarea id="event-notes" rows="2" placeholder="Submission portal link, room number, or checklist..."></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
+          <button type="submit" class="btn">Save Deadline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="script.js"></script>
+</body>
+</html>
