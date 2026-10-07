@@ -1,9 +1,9 @@
 DEMO : https://study-buddy-topaz-alpha.vercel.app/ 
 
 
-⚡ StudyBuddy — Student Productivity & Focus WebApp
+⚡ StudyBuddy -  Student Productivity & Focus WebApp
 
-A lightweight, zero-login, client-side productivity hub built for students. Features a full To-Do Task Manager, Pomodoro & Chess-Clock Style Study/Rest Timer, and an Academic Deadline Calendar with audio and visual reminder alerts.
+A lightweight, zero-login, client-side productivity hub built for students. Features a full To-Do Task Manager, Pomodoro & Chess Clock Style Study/Rest Timer and an Academic Deadline Calendar with audio and visual reminder alerts.
 
 🌟 Key Features
 
